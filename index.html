@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+	<meta name="theme-color" content="#1793D1">
+	
+	<title>SteamDB on GitHub</title>
+	
+	<link rel="shortcut icon" href="https://steamdb.info/favicon.ico">
+	<link crossorigin="anonymous" rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,400,400italic,700">
+	<style>
+	html {
+		background: #1B1B24;
+	}
+	
+	body {
+		max-width: 60em;
+		margin: 0 auto;
+		padding: 2em 1em;
+		color: #8A8DB7;
+		background: #1B1B24;
+		font: normal 16px/1.4 'Lato', Helvetica, Arial, sans-serif;
+	}
+	
+	.logo {
+		text-align: center;
+	}
+	
+	.repos {
+		margin-top: 1em;
+		display: flex;
+		flex-wrap: wrap;
+	}
+	
+	.repo {
+		background-color: #282936;
+		border: 1px solid #191921;
+		border-radius: 6px;
+		padding: 1em;
+		margin: 1em;
+		width: 15em;
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+	}
+	
+	.repo .name {
+		display: block;
+		font-weight: 700;
+	}
+	
+	.repo .desc {
+		flex: 1 1 auto;
+		padding-bottom: 1em;
+	}
+	
+	.repo .info {
+		margin: 0;
+	}
+	
+	.repo .lang {
+		color: #4aa172;
+	}
+	
+	.repo .homepage[href=""] {
+		display: none;
+	}
+	
+	.repo .count {
+		margin: 0 1em;
+		color: #FFC107;
+	}
+	
+	.octicon {
+		display: inline-block;
+		vertical-align: text-top;
+		fill: currentColor;
+	}
+	
+	a {
+		color: #5d91df;
+		text-decoration: none;
+	}
+	
+	a:hover,
+	a:focus {
+		color: #FFF;
+		outline: none;
+		text-decoration: underline;
+	}
+	</style>
+</head>
+<body>
+	<div class="logo">
+		<img src="https://steamdb.info/static/logos/header.svg" width="64" height="64" alt="SteamDB">
+	</div>
+	
+	<div class="repos" id="js-gh">Loading&hellip;</div>
+	
+	<template id="js-tpl-repo">
+		<div class="repo">
+			<a class="name"></a>
+			<p class="desc"></p>
+			<p class="info">
+				<span class="lang"></span>
+				<span class="count">
+					<svg class="octicon octicon-flame" viewBox="0 0 12 16" version="1.1" width="12" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path></svg>
+					<span class="count-num"></span>
+				</span>
+				<a class="homepage" title="Homepage" target="_blank"><svg class="octicon octicon-home" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M16 9l-3-3V2h-2v2L8 1 0 9h2l1 5c0 .55.45 1 1 1h8c.55 0 1-.45 1-1l1-5h2zm-4 5H9v-4H7v4H4L2.81 7.69 8 2.5l5.19 5.19L12 14z"></path></svg></a>
+			</p>
+		</div>
+	</template>
+	
+	<script>
+	(function()
+	{
+		fetch( 'https://api.github.com/users/SteamDatabase/repos' ).then( function( response )
+		{
+			if( response.status !== 200 )
+			{
+				document.getElementById( 'js-gh' ).textContent = 'Failed to load repositories [' + response.status + ']';
+				
+				return;
+			}
+			
+			response.json().then( function( data )
+			{
+				data = data.map( function( a )
+				{
+					a.combined_counts = a.stargazers_count + a.watchers_count + a.forks_count;
+					
+					return a;
+				} ).sort( function( a, b )
+				{
+					return b.combined_counts - a.combined_counts;
+				} );
+				
+				var frag = document.createDocumentFragment();
+				var tpl = document.getElementById( 'js-tpl-repo' );
+				
+				data.forEach( function( repo )
+				{
+					if( repo.fork )
+					{
+						return;
+					}
+					
+					var a = tpl.content.querySelector( '.name' );
+					
+					a.textContent = repo.name;
+					a.href = repo.html_url;
+					tpl.content.querySelector( '.count-num' ).textContent = repo.combined_counts;
+					tpl.content.querySelector( '.desc' ).textContent = repo.description;
+					tpl.content.querySelector( '.lang' ).textContent = repo.language;
+					tpl.content.querySelector( '.homepage' ).href = repo.homepage || '';
+					
+					var clone = document.importNode( tpl.content, true );
+					frag.appendChild( clone );
+				});
+				
+				var a = document.getElementById( 'js-gh' );
+				a.textContent = '';
+				a.appendChild( frag );
+			} );
+		} );
+	}());
+	</script>
+</body>
+</html>
